@@ -111,6 +111,7 @@ public class FCMService extends FirebaseMessagingService {
         adminChannel.enableLights(true);
         adminChannel.setLightColor(Color.RED);
         adminChannel.enableVibration(true);
+        adminChannel.setShowBadge(true);
         notificationManager.createNotificationChannel(adminChannel);
     }
 }
