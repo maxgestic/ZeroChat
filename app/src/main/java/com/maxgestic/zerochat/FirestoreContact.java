@@ -15,6 +15,7 @@ public class FirestoreContact implements Comparable<FirestoreContact>{
     private String id;
     private String email;
     private Timestamp lastMessage;
+    private String messagePrev;
 
     public FirestoreContact(){}
 
@@ -22,11 +23,13 @@ public class FirestoreContact implements Comparable<FirestoreContact>{
     public String getID(){return id;}
     public String getEmail(){return email;}
     public Timestamp getLastMessage(){return lastMessage;}
+    public String getMessagePrev() { return messagePrev; }
 
     public void setNick (String nick){this.nickname = nick;}
     public void setID(String id){this.id = id;}
     public void setEmail(String email){this.email = email;}
     public void setLastMessage(Timestamp lastMessage){this.lastMessage = lastMessage;}
+    public void setMessagePrev(String messagePrev) { this.messagePrev = messagePrev; }
 
     @Override
     public String toString(){
