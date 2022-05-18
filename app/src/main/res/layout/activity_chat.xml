@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    tools:context=".ChatActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        style="@style/ChatTopBar">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chatBackButton"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@android:color/transparent"
+            app:icon="@drawable/ic_back"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            >
+        </com.google.android.material.button.MaterialButton>
+
+        <TextView
+            android:id="@+id/chatName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="NAME"
+            android:textAppearance="@style/TextAppearance.AppCompat.Large" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chatMapButton"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@android:color/transparent"
+            app:icon="@drawable/ic_map"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            android:visibility="invisible"
+            >
+        </com.google.android.material.button.MaterialButton>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/chatMoreButton"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:background="@android:color/transparent"
+            app:icon="@drawable/ic_menu"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            >
+        </com.google.android.material.button.MaterialButton>
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/messagesList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:stackFromBottom="true"
+        android:transcriptMode="alwaysScroll"
+        android:layout_weight="1"
+        android:divider="@null"
+        android:dividerHeight="0dp"/>
+
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="bottom">
+
+        <EditText
+            android:id="@+id/messageInput"
+            android:layout_width="150pt"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:hint="Message"
+            android:inputType="textPersonName" />
+
+        <Button
+            android:id="@+id/messageSendButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send" />
+    </LinearLayout>
+</LinearLayout>

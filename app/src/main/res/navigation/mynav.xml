@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mynav"
+    app:startDestination="@id/convoListFragment">
+
+    <fragment
+        android:id="@+id/convoListFragment"
+        android:name="com.maxgestic.zerochat.convoListFragment"
+        android:label="fragment_convo_list"
+        tools:layout="@layout/fragment_convo_list" />
+    <fragment
+        android:id="@+id/contactFragment"
+        android:name="com.maxgestic.zerochat.contactFragment"
+        android:label="fragment_contact"
+        tools:layout="@layout/fragment_contact" />
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.maxgestic.zerochat.profileFragment"
+        android:label="fragment_profile"
+        tools:layout="@layout/fragment_profile" />
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.maxgestic.zerochat.settingsFragment"
+        android:label="fragment_settings"
+        tools:layout="@layout/fragment_settings" />
+</navigation>
