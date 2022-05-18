@@ -144,7 +144,12 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                                                                        listenerOn = true;
                                                                                    }
 
-                                                                                   convos.document(contactID).collection(userID).addSnapshotListener(this::messageListener);
+                                                                                   if (!listenerOn2) {
+
+                                                                                       convos.document(contactID).collection(userID).addSnapshotListener(this::messageListener);
+                                                                                       listenerOn2 = false;
+
+                                                                                   }
 
                                                                                }
 
@@ -171,7 +176,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     private void messageListener(QuerySnapshot queryDocumentSnapshots, FirebaseFirestoreException e) {
         for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()){
 
-            //TODO: Currently convo list is messed up and needs looking at, deost show most recent message after refresh
+//            Log.d("TEST", c.getDocument().getString("message"));
 
             switch (c.getType()){
 
@@ -181,8 +186,6 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                     message.setTimestamp(c.getDocument().getTimestamp("time_sent"));
                     message.setSentBy(c.getDocument().getString("sent_by"));
 
-//                    Toast.makeText(getActivity(), ""+message.getMessage(), Toast.LENGTH_SHORT).show();
-
                     for (int i =0; i < adapter.getCount(); i++){
 
                         FirestoreContact contact = adapter.getItem(i);
@@ -190,14 +193,18 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
                         if (message.getSentBy().equals(id)){
 
-                            adapter.remove(contact);
+                            if (message.getTimestamp().compareTo(contact.getLastMessage()) > 0) {
 
-                            contact.setMessagePrev(message.getMessage());
-                            contact.setLastMessage(message.getTimestamp());
+                                adapter.remove(contact);
 
-                            adapter.add(contact);
-                            adapter.sort(FirestoreContact.byDate);
-                            list.setAdapter(adapter);
+                                contact.setMessagePrev(message.getMessage());
+                                contact.setLastMessage(message.getTimestamp());
+
+                                adapter.add(contact);
+                                adapter.sort(FirestoreContact.byDate);
+                                list.setAdapter(adapter);
+
+                            }
 
                         }
 
