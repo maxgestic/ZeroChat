@@ -11,10 +11,17 @@ import androidx.navigation.ui.NavigationUI;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FieldValue;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.messaging.FirebaseMessaging;
+
+import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -36,9 +43,32 @@ public class HomeActivity extends AppCompatActivity {
 
     public void logout(View view) {
 
-        mAuth.signOut();
-        Intent intent = new Intent(HomeActivity.this, Auth.class);
-        startActivity(intent);
-        finish();
+        FirebaseMessaging.getInstance().getToken()
+                .addOnCompleteListener(task -> {
+                    if (!task.isSuccessful()) {
+                        Log.w("TEST", "Fetching FCM registration token failed", task.getException());
+                        return;
+                    }
+
+                    String token = task.getResult();
+
+                    // Get new FCM registration token
+                    String userID = FirebaseAuth.getInstance().getUid();
+                    assert userID != null;
+                    DocumentReference userDoc = FirebaseFirestore.getInstance().collection("users").document(userID);
+                    userDoc.get()
+                            .addOnCompleteListener(task1 -> {
+                                if (task1.isSuccessful()) {
+                                    userDoc.update("deviceTokens", FieldValue.arrayRemove(token));
+                                }
+
+                                mAuth.signOut();
+
+                                Intent intent = new Intent(HomeActivity.this, Auth.class);
+                                startActivity(intent);
+                                finish();
+                            });
+                });
+
     }
 }

@@ -20,10 +20,14 @@ import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnCompleteListener;
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
 import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
@@ -39,7 +43,9 @@ import com.google.firebase.firestore.QuerySnapshot;
 import java.util.ArrayList;
 import com.google.firebase.firestore.EventListener;
 
-import java.util.Arrays;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -248,6 +254,8 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
 
                                     }
 
+                                    sendMessageNotification(messageText);
+
                                 }
 
                             });
@@ -306,6 +314,66 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                         Log.w("TEST", "Error getting documents.", task.getException());
                     }
                 });
+    }
+
+    public void sendMessageNotification(String message){
+
+        String API = "https://fcm.googleapis.com/fcm/send";
+        String serverKey = "key=" + getResources().getString(R.string.FCM_SERVER_KEY);;
+        String contentType = "application/json";
+
+        JSONObject notification = new JSONObject();
+        JSONObject notifcationBody = new JSONObject();
+
+        DocumentReference userDoc = FirebaseFirestore.getInstance().collection("users").document(to);
+
+        userDoc.get()
+                .addOnCompleteListener(task -> {
+
+                    if (task.isSuccessful()){
+
+                        DocumentSnapshot doc = task.getResult();
+
+                        List<String> sendToTokens = (List<String>) doc.get("deviceTokens");
+
+                        if (sendToTokens != null) {
+                            for (String s : sendToTokens) {
+
+                                try {
+
+                                    notifcationBody.put("title", from);
+                                    notifcationBody.put("message", message) ;  //Enter your notification message
+                                    notification.put("to", s);
+                                    notification.put("data", notifcationBody);
+
+                                } catch (JSONException e) {
+                                    Log.e("TAG", "onCreate: " + e.getMessage());
+                                }
+
+                                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, API, notification, response -> {
+                                    Log.i("TEST", response.toString());
+                                }, error -> {
+                                    Toast.makeText(this, "Request error", Toast.LENGTH_LONG).show();
+                                    Log.e("TEST", error.toString());
+                                }){
+
+                                    @Override
+                                    public Map<String, String> getHeaders() throws AuthFailureError {
+                                        HashMap<String, String> params = new HashMap<>();
+                                        params.put("Authorization", serverKey);
+                                        params.put("Content-Type", contentType);
+                                        return params;
+                                    }
+                                };
+
+                                Volley.newRequestQueue(this).add(jsonRequest);
+
+                            }
+                        }
+                    }
+
+                });
+
     }
 
     @Override

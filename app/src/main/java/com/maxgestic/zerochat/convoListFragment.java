@@ -39,7 +39,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     CollectionReference contacts = FirebaseFirestore.getInstance().collection("users").document(userID).collection("contacts");
     ArrayList<FirestoreContact> data = new ArrayList<>();
     ConvoListAdapter adapter;
-    ListenerRegistration listenerRegistration;
+    ListenerRegistration listenerRegistration, listenerRegistration2;
     Boolean listenerOn = false, listenerOn2 = false;
 
     public convoListFragment() {
@@ -67,7 +67,6 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
             intent.putExtra("to", data.get(position).getID());
             startActivity(intent);
         });
-
 //        populateList();
     }
 
@@ -89,81 +88,45 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                        for (QueryDocumentSnapshot doc : task1.getResult()) {
                                            String contactID = doc.getId();
                                            if (array.contains(contactID)) {
-
                                                FirestoreContact contact = doc.toObject(FirestoreContact.class);
-
-//                                               Toast.makeText(getActivity(), userID + " " + contactID, Toast.LENGTH_SHORT).show();
                                                convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                        .addOnCompleteListener(task2 -> {
-
                                                            if (task2.isSuccessful() && task2.getResult() != null){
-
                                                                for (QueryDocumentSnapshot doc2 : task2.getResult()) {
-
                                                                    convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                                            .addOnCompleteListener(task3 -> {
-
                                                                                if (task3.isSuccessful() && task3.getResult() != null){
-
                                                                                    for (QueryDocumentSnapshot doc3 : task3.getResult()) {
-
-
                                                                                        Message message = doc2.toObject(Message.class);
                                                                                        message.setTimestamp(doc2.getTimestamp("time_sent"));
                                                                                        Message message2 = doc3.toObject(Message.class);
                                                                                        message2.setTimestamp(doc3.getTimestamp("time_sent"));
-
-
                                                                                        if (message.getTimestamp().compareTo(message2.getTimestamp()) > 0) {
-//                                                                                           Toast.makeText(getActivity(), "" + message.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                            contact.setMessagePrev(message.getMessage());
-
                                                                                        }else{
-
-//                                                                                           Toast.makeText(getActivity(), "" + message2.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                            contact.setMessagePrev(message2.getMessage());
                                                                                        }
-
-
-
-
                                                                                        contact.setID(doc.getId());
                                                                                        contact.setNick(doc.getString("nickname"));
                                                                                        contact.setLastMessage(doc.getTimestamp("lastMessage"));
                                                                                        data.add(contact);
-
                                                                                    }
-
-
                                                                                    adapter = new ConvoListAdapter(getActivity(), data);
                                                                                    adapter.sort(FirestoreContact.byDate);
                                                                                    list.setAdapter(adapter);
-
                                                                                    if (!listenerOn) {
                                                                                        listenerRegistration = convos.whereEqualTo("id", userID).addSnapshotListener(this);
                                                                                        listenerOn = true;
                                                                                    }
-
                                                                                    if (!listenerOn2) {
-
-                                                                                       convos.document(contactID).collection(userID).addSnapshotListener(this::messageListener);
+                                                                                       listenerRegistration2 = convos.document(contactID).collection(userID).addSnapshotListener(this::messageListener);
                                                                                        listenerOn2 = false;
-
                                                                                    }
-
                                                                                }
-
                                                                            });
-
-
-
-
                                                                }
-
                                                            }
-
                                                        });
-
                                            }
                                        }
                                    }
@@ -174,43 +137,30 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     }
 
     private void messageListener(QuerySnapshot queryDocumentSnapshots, FirebaseFirestoreException e) {
-        for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()){
-
-//            Log.d("TEST", c.getDocument().getString("message"));
-
-            switch (c.getType()){
-
-                case ADDED:
-                    Message message = c.getDocument().toObject(Message.class);
-                    message.setMessage(c.getDocument().getString("message"));
-                    message.setTimestamp(c.getDocument().getTimestamp("time_sent"));
-                    message.setSentBy(c.getDocument().getString("sent_by"));
-
-                    for (int i =0; i < adapter.getCount(); i++){
-
-                        FirestoreContact contact = adapter.getItem(i);
-                        String id = contact.getID();
-
-                        if (message.getSentBy().equals(id)){
-
-                            if (message.getTimestamp().compareTo(contact.getLastMessage()) > 0) {
-
-                                adapter.remove(contact);
-
-                                contact.setMessagePrev(message.getMessage());
-                                contact.setLastMessage(message.getTimestamp());
-
-                                adapter.add(contact);
-                                adapter.sort(FirestoreContact.byDate);
-                                list.setAdapter(adapter);
-
+        if (queryDocumentSnapshots != null) {
+            for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()) {
+                switch (c.getType()) {
+                    case ADDED:
+                        Message message = c.getDocument().toObject(Message.class);
+                        message.setMessage(c.getDocument().getString("message"));
+                        message.setTimestamp(c.getDocument().getTimestamp("time_sent"));
+                        message.setSentBy(c.getDocument().getString("sent_by"));
+                        for (int i = 0; i < adapter.getCount(); i++) {
+                            FirestoreContact contact = adapter.getItem(i);
+                            String id = contact.getID();
+                            if (message.getSentBy().equals(id)) {
+                                if (message.getTimestamp().compareTo(contact.getLastMessage()) > 0) {
+                                    adapter.remove(contact);
+                                    contact.setMessagePrev(message.getMessage());
+                                    contact.setLastMessage(message.getTimestamp());
+                                    adapter.add(contact);
+                                    adapter.sort(FirestoreContact.byDate);
+                                    list.setAdapter(adapter);
+                                }
                             }
-
                         }
-
-                    }
+                }
             }
-
         }
     }
 
@@ -218,19 +168,13 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     public void onEvent(@Nullable QuerySnapshot queryDocumentSnapshots, @Nullable FirebaseFirestoreException error) {
         ArrayList<String> array = new ArrayList<>();
         AtomicReference<List<String>> group = new AtomicReference<>();
-
-//        Toast.makeText(getActivity(), "test", Toast.LENGTH_SHORT).show();
         assert queryDocumentSnapshots != null;
         for (DocumentChange c: queryDocumentSnapshots.getDocumentChanges()) {
             if (adapter != null){
                 adapter.clear();
             }
-
-//            Toast.makeText(getActivity(), c.getType().toString(), Toast.LENGTH_SHORT).show();
-
             switch (c.getType()) {
                 case ADDED:
-                    Log.d("TEST", "New Convos: " + c.getDocument().getData().get("convos"));
                     group.set((List<String>) c.getDocument().getData().get("convos"));
                     if (group.get() != null) {
                         array.addAll(group.get());
@@ -243,63 +187,34 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                                 FirestoreContact contact = doc.toObject(FirestoreContact.class);
                                                 convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                         .addOnCompleteListener(task2 -> {
-
                                                             if (task2.isSuccessful() && task2.getResult() != null){
-
                                                                 for (QueryDocumentSnapshot doc2 : task2.getResult()) {
-
                                                                     convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                                             .addOnCompleteListener(task3 -> {
-
                                                                                 if (task3.isSuccessful() && task3.getResult() != null){
-
                                                                                     for (QueryDocumentSnapshot doc3 : task3.getResult()) {
-
-
                                                                                         Message message = doc2.toObject(Message.class);
                                                                                         message.setTimestamp(doc2.getTimestamp("time_sent"));
                                                                                         Message message2 = doc3.toObject(Message.class);
                                                                                         message2.setTimestamp(doc3.getTimestamp("time_sent"));
-
-
                                                                                         if (message.getTimestamp().compareTo(message2.getTimestamp()) > 0) {
-//                                                                                            Toast.makeText(getActivity(), "" + message.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                             contact.setMessagePrev(message.getMessage());
-
                                                                                         }else{
-
-//                                                                                            Toast.makeText(getActivity(), "" + message2.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                             contact.setMessagePrev(message2.getMessage());
                                                                                         }
-
-
-
-
                                                                                         contact.setID(doc.getId());
                                                                                         contact.setNick(doc.getString("nickname"));
                                                                                         contact.setLastMessage(doc.getTimestamp("lastMessage"));
                                                                                         data.add(contact);
-
                                                                                     }
-
-
                                                                                     adapter = new ConvoListAdapter(getActivity(), data);
                                                                                     adapter.sort(FirestoreContact.byDate);
                                                                                     list.setAdapter(adapter);
-
                                                                                 }
-
                                                                             });
-
-
-
-
                                                                 }
-
                                                             }
-
                                                         });
-
                                             }
                                         }
                                     }
@@ -321,66 +236,37 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                                 FirestoreContact contact = doc.toObject(FirestoreContact.class);
                                                 convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                         .addOnCompleteListener(task2 -> {
-
                                                             if (task2.isSuccessful() && task2.getResult() != null){
-
                                                                 for (QueryDocumentSnapshot doc2 : task2.getResult()) {
-
                                                                     convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                                             .addOnCompleteListener(task3 -> {
-
                                                                                 if (task3.isSuccessful() && task3.getResult() != null){
-
                                                                                     for (QueryDocumentSnapshot doc3 : task3.getResult()) {
-
-
                                                                                         Message message = doc2.toObject(Message.class);
                                                                                         message.setTimestamp(doc2.getTimestamp("time_sent"));
                                                                                         Message message2 = doc3.toObject(Message.class);
                                                                                         message2.setTimestamp(doc3.getTimestamp("time_sent"));
-
-
                                                                                         if (message.getTimestamp().compareTo(message2.getTimestamp()) > 0) {
-//                                                                                            Toast.makeText(getActivity(), "" + message.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                             contact.setMessagePrev(message.getMessage());
 
                                                                                         }else{
-
-//                                                                                            Toast.makeText(getActivity(), "" + message2.getMessage(), Toast.LENGTH_SHORT).show();
                                                                                             contact.setMessagePrev(message2.getMessage());
                                                                                         }
-
-
-
-
                                                                                         contact.setID(doc.getId());
                                                                                         contact.setNick(doc.getString("nickname"));
                                                                                         contact.setLastMessage(doc.getTimestamp("lastMessage"));
                                                                                         data.add(contact);
-
                                                                                     }
-
-
                                                                                     adapter = new ConvoListAdapter(getActivity(), data);
                                                                                     adapter.sort(FirestoreContact.byDate);
                                                                                     list.setAdapter(adapter);
-
                                                                                 }
-
                                                                             });
-
-
-
-
                                                                 }
-
                                                             }
-
                                                         });
-
                                             }
                                         }
-
                                     }
                                 });
                         break;
@@ -398,12 +284,14 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     @Override
     public void onPause() {
         listenerRegistration.remove();
+        listenerRegistration2.remove();
         super.onPause();
     }
 
     @Override
     public void onDestroy() {
         listenerRegistration.remove();
+        listenerRegistration2.remove();
         super.onDestroy();
     }
 }
