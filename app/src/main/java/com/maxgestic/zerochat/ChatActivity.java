@@ -190,9 +190,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
             if (queryDocumentSnapshots != null) {
 
                 Boolean sharing = queryDocumentSnapshots.getBoolean("sharingLoc");
-//
                 Toast.makeText(this, "UPDATE", Toast.LENGTH_SHORT).show();
-//
                 if (sharing != null){
 
                     if (sharing){
@@ -280,7 +278,6 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
-//                            Toast.makeText(this, document.getData().toString(), Toast.LENGTH_SHORT).show();
                             Message message = document.toObject(Message.class);
                             message.setRead(document.getBoolean(Message.FIELD_READ));
                             message.setSentBy(document.getString(Message.FIELD_SENT_BY));
@@ -299,7 +296,6 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
-//                            Toast.makeText(this, document.getData().toString(), Toast.LENGTH_SHORT).show();
                             Message message = document.toObject(Message.class);
                             message.setRead(document.getBoolean(Message.FIELD_READ));
                             message.setSentBy(document.getString(Message.FIELD_SENT_BY));
@@ -342,7 +338,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                                 try {
 
                                     notifcationBody.put("title", from);
-                                    notifcationBody.put("message", message) ;  //Enter your notification message
+                                    notifcationBody.put("message", message);
                                     notification.put("to", s);
                                     notification.put("data", notifcationBody);
 
@@ -478,10 +474,10 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
             return;
         }
 
-        if (chatAdapter != null){
+        if (chatAdapter != null) {
 
             assert queryDocumentSnapshots != null;
-            for (DocumentChange c: queryDocumentSnapshots.getDocumentChanges()) {
+            for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()) {
 
                 switch (c.getType()) {
 
@@ -502,113 +498,5 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
             }
 
         }
-
-//        /* Update data from Firestore, then list via adapter if data changes*/
-//        if (chatAdapter != null) { /* important checks to avoid crashes */
-//            /* If there is a change these should not be bull, it may be empty if
-//             * all documents have been deleted form the collection. */
-//            if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
-//
-////                Toast.makeText(this, "TEST", Toast.LENGTH_SHORT).show();
-//                /* Clears adapter and creates a new data list */
-//                /* TODO: Find way instead of repopulating list */
-//                chatAdapter.clearSent();
-//                chatAdapter.notifyDataSetChanged();
-//                /* Gets all documents in the affected collection */
-//
-//                messages.get()
-//                        .addOnCompleteListener(task -> {
-//                            if (task.isSuccessful()) {
-//                                for (QueryDocumentSnapshot document : task.getResult()) {
-////                            Toast.makeText(this, document.getData().toString(), Toast.LENGTH_SHORT).show();
-//                                    Message message = document.toObject(Message.class);
-//                                    message.setRead(document.getBoolean(Message.FIELD_READ));
-//                                    message.setSentBy(document.getString(Message.FIELD_SENT_BY));
-//                                    if (document.getTimestamp(Message.FIELD_TIME_SENT) == null)
-//                                        message.setTimestamp(Timestamp.now());
-//                                    else {
-//                                        message.setTimestamp(document.getTimestamp(Message.FIELD_TIME_SENT));
-//                                    }
-//                                    chatAdapter.add(message);
-//                                }
-//                            } else {
-//                                Log.w("TEST", "Error getting documents.", task.getException());
-//                            }
-//                        });
-//
-//            }
-//        }
     }
-
-//    private void event2(QuerySnapshot queryDocumentSnapshots, FirebaseFirestoreException e) {
-//        /* If exception occurs, don't try to do anything else, just display the error and return */
-//        if (e != null) {
-//            Log.e("TEST", "Listen failed.", e);
-//            return;
-//        }
-//
-//        if (chatAdapter != null){
-//
-//            assert queryDocumentSnapshots != null;
-//            for (DocumentChange c: queryDocumentSnapshots.getDocumentChanges()) {
-//
-//                switch (c.getType()) {
-//
-//                    case ADDED:
-//                        Log.d("TEST", "New Message: " + c.getDocument().getData());
-//                        Message message = c.getDocument().toObject(Message.class);
-//                        message.setRead(c.getDocument().getBoolean(Message.FIELD_READ));
-//                        message.setSentBy(c.getDocument().getString(Message.FIELD_SENT_BY));
-//                        if (c.getDocument().getTimestamp(Message.FIELD_TIME_SENT) == null)
-//                            message.setTimestamp(Timestamp.now());
-//                        else {
-//                            message.setTimestamp(c.getDocument().getTimestamp(Message.FIELD_TIME_SENT));
-//                        }
-//                        chatAdapter.add(message);
-//                        break;
-//
-//                }
-//            }
-//
-//        }
-//
-////        /* Update data from Firestore, then list via adapter if data changes*/
-////        if (chatAdapter != null) { /* important checks to avoid crashes */
-////            /* If there is a change these should not be bull, it may be empty if
-////             * all documents have been deleted form the collection. */
-////            if (queryDocumentSnapshots != null && !queryDocumentSnapshots.isEmpty()) {
-////
-//////                Toast.makeText(this, "TEST2", Toast.LENGTH_SHORT).show();
-////                /* Clears adapter and creates a new data list */
-////                /* TODO: Find way instead of repopulating list */
-////                chatAdapter.clearRec();
-////                chatAdapter.notifyDataSetChanged();
-////                /* Gets all documents in the affected collection */
-////
-////
-////                messages2.get()
-////                        .addOnCompleteListener(task -> {
-////                            if (task.isSuccessful()) {
-////                                for (QueryDocumentSnapshot document : task.getResult()) {
-//////                            Toast.makeText(this, document.getData().toString(), Toast.LENGTH_SHORT).show();
-////                                    Message message = document.toObject(Message.class);
-////                                    message.setRead(document.getBoolean(Message.FIELD_READ));
-////                                    message.setSentBy(document.getString(Message.FIELD_SENT_BY));
-////                                    if (document.getTimestamp(Message.FIELD_TIME_SENT) == null)
-////                                        message.setTimestamp(Timestamp.now());
-////                                    else {
-////                                        message.setTimestamp(document.getTimestamp(Message.FIELD_TIME_SENT));
-////                                    }
-////                                    chatAdapter.add(message);
-////                                }
-////                            } else {
-////                                Log.w("TEST", "Error getting documents.", task.getException());
-////                            }
-////                        });
-////
-////            }
-////        }
-//    }
-
-
 }

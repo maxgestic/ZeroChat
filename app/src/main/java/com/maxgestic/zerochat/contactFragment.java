@@ -132,7 +132,6 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
             String emailAddress = email.getText().toString();
 
             if(!nickName.isEmpty() && !emailAddress.isEmpty()){
-//                Toast.makeText(getActivity(), "Contact: " + nickName, Toast.LENGTH_SHORT).show();
                 addContactToFirebase(nickName, emailAddress);
                 dialog.dismiss();
             }else{
@@ -302,9 +301,9 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
     }
 
     @Override
-    public void onPause() {
+    public void onStop() {
         listenerRegistration.remove();
-        super.onPause();
+        super.onStop();
     }
 
     @Override
