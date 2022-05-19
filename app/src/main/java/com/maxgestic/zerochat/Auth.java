@@ -137,6 +137,17 @@ public class Auth extends AppCompatActivity {
                                     // Sign in success, update UI with the signed-in user's information
                                     progressBar.setVisibility(View.GONE);
                                     Toast.makeText(Auth.this, "Login Successfully", Toast.LENGTH_SHORT).show();
+                                    DocumentReference documentReference = mStore.collection("users").document(Objects.requireNonNull(mAuth.getCurrentUser()).getUid());
+                                    documentReference.get()
+                                            .addOnCompleteListener(task1 ->{
+
+                                                if (!task1.getResult().exists()){
+                                                    Map<String, Object> user = new HashMap<>();
+                                                    user.put("email", username);
+                                                    documentReference.set(user);
+                                                }
+
+                                            });
                                     StartNewActivity();
                                 } else {
                                     // If sign in fails, display a message to the user.
@@ -263,6 +274,9 @@ public class Auth extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> LoginUser());
         //check if user is logged in and if so start HomeActivity via intent
         if(mUser != null){
+
+            //TODO: Program if device token is not in deviceTokens array in firestore then logout user and make them log in again, this is to implement a device manager later on where users can logout of other devices remotley
+
             StartNewActivity();
         }
 
@@ -291,7 +305,7 @@ public class Auth extends AppCompatActivity {
                         // Your server's client ID, not your Android client ID.
                         .setServerClientId("746704851947-8764i6nl3ipop62fptctaihct2rf1nga.apps.googleusercontent.com")
                         // Only show accounts previously used to sign in.
-                        .setFilterByAuthorizedAccounts(true)
+                        .setFilterByAuthorizedAccounts(false)
                         .build())
                 // Automatically sign in when exactly one credential is retrieved.
                 .setAutoSelectEnabled(true)

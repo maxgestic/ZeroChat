@@ -47,6 +47,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
     ArrayList<FirestoreContact> data = new ArrayList<>();
     ContactsAdapter adapter;
     ListenerRegistration listenerRegistration;
+    Boolean paused = false;
 
 
     public contactFragment() {
@@ -99,7 +100,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
     private void populateList(){
         contacts.get()
                 .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
+                    if (task.isSuccessful() && !paused) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Log.d("TEST", document.getId() + " => " + document.getData());
                             FirestoreContact contact = document.toObject(FirestoreContact.class);
@@ -107,8 +108,10 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
                             contact.setNick(document.getString("nickname"));
                             data.add(contact);
                         }
-                        adapter = new ContactsAdapter(getActivity(), data);
-                        list.setAdapter(adapter);
+                        if (data != null && !paused) {
+                            adapter = new ContactsAdapter(getActivity(), data);
+                            list.setAdapter(adapter);
+                        }
                     } else {
                         Log.w("TEST", "Error getting documents.", task.getException());
                     }
@@ -249,23 +252,25 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
             Log.w("TEST", "Listen failed.", error);
         }
 
-        if (data != null && adapter != null) {
+        if (data != null && adapter != null && !paused) {
 
             adapter.clear();
 
-            if (value != null && !value.isEmpty()) {
+            if (value != null && !value.isEmpty() && !paused) {
                 data = new ArrayList<>();
+                if (!paused) {
 
-                for (QueryDocumentSnapshot document : value) {
+                    for (QueryDocumentSnapshot document : value) {
 
-                    FirestoreContact contact = document.toObject(FirestoreContact.class);
-                    contact.setID(document.getId());
-                    contact.setNick(document.getString("nickname"));
-                    data.add(contact);
+                        FirestoreContact contact = document.toObject(FirestoreContact.class);
+                        contact.setID(document.getId());
+                        contact.setNick(document.getString("nickname"));
+                        data.add(contact);
 
+                    }
+
+                    adapter.addAll(data);
                 }
-
-                adapter.addAll(data);
 
             }
 
@@ -303,12 +308,14 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
     @Override
     public void onStop() {
         listenerRegistration.remove();
+        paused = true;
         super.onStop();
     }
 
     @Override
     public void onDestroy() {
         listenerRegistration.remove();
+        paused = true;
         super.onDestroy();
     }
 }

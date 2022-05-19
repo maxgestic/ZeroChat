@@ -44,6 +44,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
     ConvoListAdapter adapter;
     ListenerRegistration listenerRegistration, listenerRegistration2;
     Boolean listenerOn = false, listenerOn2 = false;
+    Boolean paused = false;
 
     public convoListFragment() {
         // Required empty public constructor
@@ -73,166 +74,9 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 //        populateList();
     }
 
-    private void populateList(){
-        ArrayList<String> array = new ArrayList<>();
-        AtomicReference<List<String>> group = new AtomicReference<>();
-        AtomicReference<Integer> counter = new AtomicReference<>(0);
-        AtomicReference<Integer> counter2 = new AtomicReference<>(0);
-        AtomicReference<Integer> counter3 = new AtomicReference<>(0);
-        AtomicReference<Integer> counter4 = new AtomicReference<>(0);
-
-        AtomicReference<Task<QuerySnapshot>> test = new AtomicReference<>();
-
-        if (adapter != null){
-            adapter.clear();
-        }
-            convos.document(userID).get().addOnCompleteListener(task -> {
-               if (task.isSuccessful()) {
-                   DocumentSnapshot document = task.getResult();
-                   group.set((List<String>) document.get("convos"));
-                   if (group.get() != null) {
-                       array.addAll(group.get());
-                       contacts.get()
-                               .addOnCompleteListener(task1 -> {
-                                   if (task1.isSuccessful()) {
-                                       for (QueryDocumentSnapshot doc : task1.getResult()) {
-                                           String contactID = doc.getId();
-                                           if (array.contains(contactID)) {
-                                               counter.set(counter.get()+1);
-                                               FirestoreContact contact = doc.toObject(FirestoreContact.class);
-                                               convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
-                                                       .addOnCompleteListener(task2 -> {
-                                                           if (task2.isSuccessful() && task2.getResult() != null){
-                                                               for (QueryDocumentSnapshot doc2 : task2.getResult()) {
-                                                                   test.set(convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
-                                                                           .addOnCompleteListener(task3 -> {
-                                                                               if (task3.getResult().isEmpty()){
-//                                                                                       Log.d("TEST", "ADDING");
-                                                                                       counter2.set(counter2.get()+1);
-                                                                                   }
-                                                                               if (task3.isSuccessful() && task3.getResult() != null) {
-                                                                                   for (QueryDocumentSnapshot doc3 : task3.getResult()) {
-                                                                                       Message message = doc2.toObject(Message.class);
-                                                                                       message.setTimestamp(doc2.getTimestamp("time_sent"));
-                                                                                       Message message2 = doc3.toObject(Message.class);
-                                                                                       message2.setTimestamp(doc3.getTimestamp("time_sent"));
-                                                                                       if (message.getTimestamp().compareTo(message2.getTimestamp()) > 0) {
-                                                                                           contact.setMessagePrev(message.getMessage());
-                                                                                       } else {
-                                                                                           contact.setMessagePrev(message2.getMessage());
-                                                                                       }
-                                                                                       contact.setID(doc.getId());
-                                                                                       contact.setNick(doc.getString("nickname"));
-                                                                                       contact.setLastMessage(doc.getTimestamp("lastMessage"));
-                                                                                       data.add(contact);
-//                                                                                       Log.d("TEST", "ADDING");
-                                                                                       counter2.set(counter2.get()+1);
-                                                                                       counter4.set(counter4.get()+1);
-                                                                                   }
-                                                                               }
-
-//                                                                               Log.d("TEST", "C1 " + counter + " C2 " + counter2);
-
-                                                                               if (counter.get().equals(counter2.get())) {
-
-                                                                                   FirebaseStorage storage = FirebaseStorage.getInstance();
-                                                                                   StorageReference storageRef = storage.getReference();
-                                                                                   counter3.set(0);
-
-                                                                                   for (FirestoreContact c : data){
-
-                                                                                       StorageReference pathRef = storageRef.child("profilePics/"+c.getID()+".jpg");
-//                                                                                       Log.d("TEST", pathRef.toString());
-
-                                                                                       final long ONE_MEGABYTE = 1024 * 1024;
-
-                                                                                       pathRef.getBytes(ONE_MEGABYTE).addOnSuccessListener(bytes -> {
-                                                                                           if (bytes != null){
-
-                                                                                               FirestoreContact cont = c;
-//                                                                                               Log.d("TEST", bytes.length+ "");
-                                                                                               data.remove(c);
-                                                                                               cont.setImageBytes(bytes);
-                                                                                               data.add(cont);
-                                                                                               counter3.set(counter3.get()+1);
-
-                                                                                               if (counter3.get().equals(counter4.get())) {
-
-                                                                                                   for (FirestoreContact conta: data) {
-
-//                                                                                                       Log.d("TEST", conta.getNick() + " " + conta.getLastMessage());
-
-                                                                                                   }
-
-//                                                                                                   Log.d("TEST", "ADA");
-
-                                                                                                   adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                                   adapter.sort(FirestoreContact.byDate);
-                                                                                                   list.setAdapter(adapter);
-
-
-
-                                                                                                   if (!listenerOn) {
-//                                                                                                       Log.d("TEST", "STARTIN LIST");
-                                                                                                       listenerRegistration = convos.whereEqualTo("id", userID).addSnapshotListener(this);
-                                                                                                       listenerOn = true;
-                                                                                                   }
-                                                                                                   if (!listenerOn2) {
-//                                                                                                       Log.d("TEST", "STARTIN LIST");
-                                                                                                       for (FirestoreContact contact2 : data) {
-                                                                                                           listenerRegistration2 = convos.document(contact2.getID()).collection(userID).addSnapshotListener(this::messageListener);
-                                                                                                       }
-                                                                                                       listenerOn2 = true;
-                                                                                                   }
-
-                                                                                               }
-
-                                                                                           }
-                                                                                       }).addOnFailureListener(exception -> {
-                                                                                           Log.e("TEST", exception.getMessage());
-                                                                                           counter3.set(counter3.get()+1);
-
-                                                                                           if (counter3.get().equals(counter4.get())) {
-
-//                                                                                               Log.d("TEST", "ADA");
-
-                                                                                               adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                               adapter.sort(FirestoreContact.byDate);
-                                                                                               list.setAdapter(adapter);
-
-                                                                                               if (!listenerOn) {
-//                                                                                                   Log.d("TEST", "STARTIN LIST");
-                                                                                                   listenerRegistration = convos.whereEqualTo("id", userID).addSnapshotListener(this);
-                                                                                                   listenerOn = true;
-                                                                                               }
-//                                                                                               Log.d("TEST", "STARTIN LIST");
-                                                                                               if (!listenerOn2) {
-                                                                                                   for (FirestoreContact contact2 : data) {
-                                                                                                       listenerRegistration2 = convos.document(contact2.getID()).collection(userID).addSnapshotListener(this::messageListener);
-                                                                                                   }
-                                                                                                   listenerOn2 = true;
-                                                                                               }
-                                                                                           }
-                                                                                       });
-                                                                                   };
-
-                                                                               }
-                                                                           }));
-                                                               }
-                                                           }
-                                                       });
-                                           }
-                                       }
-                                   }
-                               });
-                   }
-               }
-            });
-    }
-
     private void messageListener(QuerySnapshot queryDocumentSnapshots, FirebaseFirestoreException e) {
         Log.d("TEST", "UPDATE");
-        if (queryDocumentSnapshots != null) {
+        if (queryDocumentSnapshots != null && !paused) {
             for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()) {
                 switch (c.getType()) {
                     case ADDED:
@@ -245,14 +89,14 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                             String id = contact.getID();
                             if (message.getSentBy().equals(id)) {
                                 if (message.getTimestamp().compareTo(contact.getLastMessage()) > 0) {
-                                    adapter.remove(contact);
-                                    contact.setMessagePrev(message.getMessage());
-                                    contact.setLastMessage(message.getTimestamp());
-                                    adapter.add(contact);
-                                    adapter.sort(FirestoreContact.byDate);
-                                    list.setAdapter(adapter);
-
-//                                    Log.d("TEST", "ADA");
+                                    if (!paused) {
+                                        adapter.remove(contact);
+                                        contact.setMessagePrev(message.getMessage());
+                                        contact.setLastMessage(message.getTimestamp());
+                                        adapter.add(contact);
+                                        adapter.sort(FirestoreContact.byDate);
+                                        list.setAdapter(adapter);
+                                    }
                                 }
                             }
                         }
@@ -277,27 +121,27 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
             switch (change.getType()) {
                 case ADDED:
                     group.set((List<String>) change.getDocument().getData().get("convos"));
-                    if (group.get() != null) {
+                    if (group.get() != null && !paused) {
                         array.addAll(group.get());
                         contacts.get()
                                 .addOnCompleteListener(task1 -> {
-                                    if (task1.isSuccessful()) {
+                                    if (task1.isSuccessful() && !paused) {
                                         for (QueryDocumentSnapshot doc : task1.getResult()) {
                                             String contactID = doc.getId();
-                                            if (array.contains(contactID)) {
+                                            if (array.contains(contactID) && !paused) {
                                                 counter.set(counter.get()+1);
                                                 FirestoreContact contact = doc.toObject(FirestoreContact.class);
                                                 convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                         .addOnCompleteListener(task2 -> {
-                                                            if (task2.isSuccessful() && task2.getResult() != null){
+                                                            if (task2.isSuccessful() && task2.getResult() != null && !paused){
                                                                 for (QueryDocumentSnapshot doc2 : task2.getResult()) {
                                                                     convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                                             .addOnCompleteListener(task3 -> {
-                                                                                if (task3.getResult().isEmpty()){
+                                                                                if (task3.getResult().isEmpty() && !paused){
 //                                                                                    Log.d("TEST", "ADDING");
                                                                                     counter2.set(counter2.get()+1);
                                                                                 }
-                                                                                if (task3.isSuccessful() && task3.getResult() != null) {
+                                                                                if (task3.isSuccessful() && task3.getResult() != null && !paused) {
                                                                                     for (QueryDocumentSnapshot doc3 : task3.getResult()) {
                                                                                         Message message = doc2.toObject(Message.class);
                                                                                         message.setTimestamp(doc2.getTimestamp("time_sent"));
@@ -320,7 +164,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
 //                                                                                Log.d("TEST", "C1 " + counter + " C2 " + counter2);
 
-                                                                                if (counter.get().equals(counter2.get())) {
+                                                                                if (counter.get().equals(counter2.get()) && !paused) {
 
                                                                                     FirebaseStorage storage = FirebaseStorage.getInstance();
                                                                                     StorageReference storageRef = storage.getReference();
@@ -334,7 +178,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                                                                         final long ONE_MEGABYTE = 1024 * 1024;
 
                                                                                         pathRef.getBytes(ONE_MEGABYTE).addOnSuccessListener(bytes -> {
-                                                                                            if (bytes != null){
+                                                                                            if (bytes != null && !paused){
 
                                                                                                 FirestoreContact cont = c;
 //                                                                                                Log.d("TEST", bytes.length+ "");
@@ -345,11 +189,11 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
                                                                                                 if (counter3.get().equals(counter4.get())) {
 
-//                                                                                                    Log.d("TEST", "ADA");
-
-                                                                                                    adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                                    adapter.sort(FirestoreContact.byDate);
-                                                                                                    list.setAdapter(adapter);
+                                                                                                  if (!paused) {
+                                                                                                      adapter = new ConvoListAdapter(getActivity(), data);
+                                                                                                      adapter.sort(FirestoreContact.byDate);
+                                                                                                      list.setAdapter(adapter);
+                                                                                                  }
 
                                                                                                 }
 
@@ -360,11 +204,11 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
                                                                                             if (counter3.get().equals(counter4.get())) {
 
-//                                                                                                Log.d("TEST", "ADA");
-
-                                                                                                adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                                adapter.sort(FirestoreContact.byDate);
-                                                                                                list.setAdapter(adapter);
+                                                                                                if (!paused) {
+                                                                                                    adapter = new ConvoListAdapter(getActivity(), data);
+                                                                                                    adapter.sort(FirestoreContact.byDate);
+                                                                                                    list.setAdapter(adapter);
+                                                                                                }
 
                                                                                             }
                                                                                         });
@@ -385,27 +229,27 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                 case MODIFIED:
                     Log.d("TEST", "Edit Convos: " + change.getDocument().getData().get("convos"));
                     group.set((List<String>) change.getDocument().getData().get("convos"));
-                    if (group.get() != null) {
+                    if (group.get() != null && !paused) {
                         array.addAll(group.get());
                         contacts.get()
                                 .addOnCompleteListener(task1 -> {
-                                    if (task1.isSuccessful()) {
+                                    if (task1.isSuccessful() && !paused) {
                                         for (QueryDocumentSnapshot doc : task1.getResult()) {
                                             String contactID = doc.getId();
-                                            if (array.contains(contactID)) {
+                                            if (array.contains(contactID) && !paused) {
                                                 counter.set(counter.get()+1);
                                                 FirestoreContact contact = doc.toObject(FirestoreContact.class);
                                                 convos.document(userID).collection(contactID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                         .addOnCompleteListener(task2 -> {
-                                                            if (task2.isSuccessful() && task2.getResult() != null){
+                                                            if (task2.isSuccessful() && task2.getResult() != null && !paused){
                                                                 for (QueryDocumentSnapshot doc2 : task2.getResult()) {
                                                                     convos.document(contactID).collection(userID).orderBy("time_sent", Query.Direction.DESCENDING).limit(1).get()
                                                                             .addOnCompleteListener(task3 -> {
-                                                                                if (task3.getResult().isEmpty()){
+                                                                                if (task3.getResult().isEmpty() && !paused){
 //                                                                                    Log.d("TEST", "ADDING");
                                                                                     counter2.set(counter2.get()+1);
                                                                                 }
-                                                                                if (task3.isSuccessful() && task3.getResult() != null) {
+                                                                                if (task3.isSuccessful() && task3.getResult() != null && !paused) {
                                                                                     for (QueryDocumentSnapshot doc3 : task3.getResult()) {
                                                                                         Message message = doc2.toObject(Message.class);
                                                                                         message.setTimestamp(doc2.getTimestamp("time_sent"));
@@ -428,7 +272,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
 //                                                                                Log.d("TEST", "C1 " + counter + " C2 " + counter2);
 
-                                                                                if (counter.get().equals(counter2.get())) {
+                                                                                if (counter.get().equals(counter2.get()) && !paused) {
 
                                                                                     FirebaseStorage storage = FirebaseStorage.getInstance();
                                                                                     StorageReference storageRef = storage.getReference();
@@ -442,7 +286,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
                                                                                         final long ONE_MEGABYTE = 1024 * 1024;
 
                                                                                         pathRef.getBytes(ONE_MEGABYTE).addOnSuccessListener(bytes -> {
-                                                                                            if (bytes != null){
+                                                                                            if (bytes != null && !paused){
 
                                                                                                 FirestoreContact cont = c;
 //                                                                                                Log.d("TEST", bytes.length+ "");
@@ -453,9 +297,11 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
                                                                                                 if (counter3.get().equals(counter4.get())) {
 
-                                                                                                    adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                                    adapter.sort(FirestoreContact.byDate);
-                                                                                                    list.setAdapter(adapter);
+                                                                                                    if (!paused) {
+                                                                                                        adapter = new ConvoListAdapter(getActivity(), data);
+                                                                                                        adapter.sort(FirestoreContact.byDate);
+                                                                                                        list.setAdapter(adapter);
+                                                                                                    }
 
                                                                                                 }
 
@@ -466,9 +312,11 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
                                                                                             if (counter3.get().equals(counter4.get())) {
 
-                                                                                                adapter = new ConvoListAdapter(getActivity(), data);
-                                                                                                adapter.sort(FirestoreContact.byDate);
-                                                                                                list.setAdapter(adapter);
+                                                                                                if (!paused) {
+                                                                                                    adapter = new ConvoListAdapter(getActivity(), data);
+                                                                                                    adapter.sort(FirestoreContact.byDate);
+                                                                                                    list.setAdapter(adapter);
+                                                                                                }
 
                                                                                             }
                                                                                         });
@@ -491,7 +339,6 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
 
     @Override
     public void onResume() {
-//        populateList();
         if (!listenerOn) {
 //            Log.d("TEST", "STARTIN LIST");
             listenerRegistration = convos.whereEqualTo("id", userID).addSnapshotListener(this);
@@ -504,6 +351,7 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
             }
             listenerOn2 = true;
         }
+        paused = false;
         super.onResume();
     }
 
@@ -518,11 +366,13 @@ public class convoListFragment extends Fragment implements EventListener<QuerySn
             listenerRegistration2.remove();
             listenerOn2 = false;
         }
+        paused = true;
         super.onStop();
     }
 
     @Override
     public void onDestroy() {
+        paused = true;
 //        Log.d("TEST", "STOP");
         if (listenerRegistration != null) {
             listenerRegistration.remove();

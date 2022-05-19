@@ -75,7 +75,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         otherPersonID = fromIntent.getStringExtra("otherPerson");
         otherPersonName = fromIntent.getStringExtra("otherPersonName");
 
-        Toast.makeText(this, otherPersonID, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(this, otherPersonID, Toast.LENGTH_SHORT).show();
 
         otherPersonDoc = FirebaseFirestore.getInstance().collection("users").document(otherPersonID);
 

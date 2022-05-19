@@ -190,7 +190,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
             if (queryDocumentSnapshots != null) {
 
                 Boolean sharing = queryDocumentSnapshots.getBoolean("sharingLoc");
-                Toast.makeText(this, "UPDATE", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "UPDATE", Toast.LENGTH_SHORT).show();
                 if (sharing != null){
 
                     if (sharing){
@@ -349,7 +349,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                                 JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, API, notification, response -> {
                                     Log.i("TEST", response.toString());
                                 }, error -> {
-                                    Toast.makeText(this, "Request error", Toast.LENGTH_LONG).show();
+//                                    Toast.makeText(this, "Request error", Toast.LENGTH_LONG).show();
                                     Log.e("TEST", error.toString());
                                 }){
 
