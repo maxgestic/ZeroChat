@@ -22,7 +22,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="start"
-            android:textColor="@color/neutral1_100"
             android:text="PLACEHOLDER_MSG" />
 
         <TextView
@@ -30,7 +29,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="end"
-            android:textColor="@color/neutral1_100"
             android:text="TextView"
             android:textSize="10dp" />
     </LinearLayout>

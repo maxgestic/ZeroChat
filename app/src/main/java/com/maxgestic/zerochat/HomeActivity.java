@@ -1,18 +1,18 @@
 package com.maxgestic.zerochat;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.BottomNavigationViewKt;
-import androidx.navigation.ui.NavigationUI;
-
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.NavController;
+import androidx.navigation.fragment.NavHostFragment;
+import androidx.navigation.ui.NavigationUI;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.firebase.auth.FirebaseAuth;
@@ -21,11 +21,9 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.messaging.FirebaseMessaging;
 
-import java.util.List;
-
 public class HomeActivity extends AppCompatActivity {
 
-    FirebaseAuth mAuth;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,9 +33,12 @@ public class HomeActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
 
         final NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.fragment);
+        assert navHostFragment != null;
         final NavController navController = navHostFragment.getNavController();
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottomNavigationView);
         NavigationUI.setupWithNavController(bottomNavigationView, navController);
+
+        checkPerms();
 
     }
 
@@ -70,5 +71,47 @@ public class HomeActivity extends AppCompatActivity {
                             });
                 });
 
+    }
+
+    protected void checkPerms() {
+
+        int checkResult1 = checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION);
+        int checkResult2 = checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION);
+
+        if (checkResult1 != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+
+        } else if (checkResult2 != PackageManager.PERMISSION_GRANTED) {
+
+            requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 2);
+
+        }
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantedResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantedResults);
+        switch (requestCode) {
+            case 1: {
+                if (grantedResults.length > 0 && grantedResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Thanks for that", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "You need to grant this", Toast.LENGTH_SHORT).show();
+                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+                }
+                break;
+            }
+            case 2: {
+                if (grantedResults.length > 0 && grantedResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Thanks for that", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "You need to grant this", Toast.LENGTH_SHORT).show();
+                    requestPermissions(new String[]{Manifest.permission.READ_SMS}, 2);
+                }
+                break;
+            }
+        }
     }
 }

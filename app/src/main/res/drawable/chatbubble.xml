@@ -3,8 +3,8 @@
     <item>
         <shape>
             <stroke
-                android:width="0dp"
-                android:color="#FFFFFF" />
+                android:width="0.5dp"
+                android:color="@color/accent3_500" />
 
             <solid android:color="@color/accent3_100" />
 
@@ -14,7 +14,7 @@
                 android:right="5dp"
                 android:top="2dp" />
 
-            <corners android:radius="100dp" />
+            <corners android:radius="15dp" />
         </shape>
     </item>
 </layer-list>

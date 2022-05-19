@@ -31,12 +31,10 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
-import com.google.firebase.firestore.util.Listener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class contactFragment extends Fragment implements EventListener<QuerySnapshot>{
 
@@ -64,7 +62,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         list = requireView().findViewById(R.id.contactList);
         registerForContextMenu(list);
-        Log.d("TEST", "Path:" + contacts);
+//        Log.d("TEST", "Path:" + contacts);
         listenerRegistration = contacts.addSnapshotListener(this);
         populateList();
 
@@ -102,7 +100,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && !paused) {
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            Log.d("TEST", document.getId() + " => " + document.getData());
+//                            Log.d("TEST", document.getId() + " => " + document.getData());
                             FirestoreContact contact = document.toObject(FirestoreContact.class);
                             contact.setID(document.getId());
                             contact.setNick(document.getString("nickname"));
@@ -191,7 +189,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
                                                 Toast.makeText(getActivity(), "User does not exist", Toast.LENGTH_SHORT).show();
                                             }
                                             for (QueryDocumentSnapshot document : task2.getResult()) {
-                                                Log.d("TEST", document.getId() + " => " + document.getData());
+//                                                Log.d("TEST", document.getId() + " => " + document.getData());
                                                 contacts.document(document.getId()).set(contact);
                                                 Toast.makeText(getActivity(), "Contact added!", Toast.LENGTH_SHORT).show();
                                             }
@@ -201,7 +199,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
                                     });
                         }
                         for (QueryDocumentSnapshot document : task.getResult()) {
-                            Log.d("TEST", document.getId() + " => " + document.getData());
+//                            Log.d("TEST", document.getId() + " => " + document.getData());
                             Toast.makeText(getActivity(), "Contact already exists", Toast.LENGTH_SHORT).show();
                         }
                     }
@@ -224,7 +222,7 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
                             Toast.makeText(getActivity(), "Contact edited!", Toast.LENGTH_SHORT).show();
                         }
                     } else {
-                        Log.d("TEST", "Error getting documents.", task.getException());
+//                        Log.d("TEST", "Error getting documents.", task.getException());
                     }
                 });
 
@@ -251,29 +249,20 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
         if (error != null) {
             Log.w("TEST", "Listen failed.", error);
         }
-
         if (data != null && adapter != null && !paused) {
-
             adapter.clear();
-
             if (value != null && !value.isEmpty() && !paused) {
                 data = new ArrayList<>();
                 if (!paused) {
-
                     for (QueryDocumentSnapshot document : value) {
-
                         FirestoreContact contact = document.toObject(FirestoreContact.class);
                         contact.setID(document.getId());
                         contact.setNick(document.getString("nickname"));
                         data.add(contact);
-
                     }
-
                     adapter.addAll(data);
                 }
-
             }
-
             adapter.notifyDataSetChanged();
         }
     }
@@ -293,11 +282,11 @@ public class contactFragment extends Fragment implements EventListener<QuerySnap
         AdapterView.AdapterContextMenuInfo info = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
         switch(item.getItemId()) {
             case R.id.edit_contact:
-                Toast.makeText(getActivity(), "Edit", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getActivity(), "Edit", Toast.LENGTH_SHORT).show();
                 editContactDialog(data.get(info.position).getEmail());
                 return true;
             case R.id.delete_contact:
-                Toast.makeText(getActivity(), "Delete", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(getActivity(), "Delete", Toast.LENGTH_SHORT).show();
                 deleteContact(data.get(info.position).getEmail());
                 return true;
             default:

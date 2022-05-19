@@ -1,9 +1,5 @@
 package com.maxgestic.zerochat;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.database.DataSetObserver;
 import android.os.Bundle;
@@ -18,34 +14,30 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.android.volley.Request;
-import com.android.volley.RequestQueue;
-import com.android.volley.Response;
-import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.tasks.OnFailureListener;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.DocumentChange;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.QuerySnapshot;
-
-import java.util.ArrayList;
-import com.google.firebase.firestore.EventListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -58,18 +50,18 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
     private ChatAdapter chatAdapter;
     private ListView listView;
     private EditText messageInputText;
-    private Button sendButton, menuButton, mapButton;
-    private boolean side = false;
+    private Button menuButton;
+    private Button mapButton;
     private String from;
     private String to;
-    FirebaseAuth mAuth = FirebaseAuth.getInstance();
-    String userID = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
-    CollectionReference contacts = FirebaseFirestore.getInstance().collection("users").document(userID).collection("contacts");
-    CollectionReference messages;
-    CollectionReference messages2;
-    DocumentReference convos = FirebaseFirestore.getInstance().collection("convos").document(userID);
-    DocumentReference userDoc = FirebaseFirestore.getInstance().collection("users").document(userID);
-    String name;
+    private final FirebaseAuth mAuth = FirebaseAuth.getInstance();
+    private final String userID = Objects.requireNonNull(mAuth.getCurrentUser()).getUid();
+    private final CollectionReference contacts = FirebaseFirestore.getInstance().collection("users").document(userID).collection("contacts");
+    private CollectionReference messages;
+    private final DocumentReference convos = FirebaseFirestore.getInstance().collection("convos").document(userID);
+    private final DocumentReference userDoc = FirebaseFirestore.getInstance().collection("users").document(userID);
+    private String name;
+    private ListenerRegistration lr1, lr2, lr3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,7 +109,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
                 });
 
         messages = FirebaseFirestore.getInstance().collection("convos").document(from).collection(to);
-        messages2 = FirebaseFirestore.getInstance().collection("convos").document(to).collection(from);
+        CollectionReference messages2 = FirebaseFirestore.getInstance().collection("convos").document(to).collection(from);
 
         DocumentReference docRef = contacts.document(to);
         docRef.get().addOnCompleteListener(task -> {
@@ -134,7 +126,7 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
             }
         });
 
-        sendButton = findViewById(R.id.messageSendButton);
+        Button sendButton = findViewById(R.id.messageSendButton);
 
         listView = findViewById(R.id.messagesList);
 
@@ -142,21 +134,13 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
         listView.setAdapter(chatAdapter);
 
         messageInputText = (EditText) findViewById(R.id.messageInput);
-        messageInputText.setOnKeyListener(new View.OnKeyListener() {
-            @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if ((event.getAction() == KeyEvent.ACTION_DOWN) && (event.getAction() == KeyEvent.KEYCODE_ENTER))
-                    return sendChatMessage();
-                return false;
-            }
+        messageInputText.setOnKeyListener((v, keyCode, event) -> {
+            if ((event.getAction() == KeyEvent.ACTION_DOWN) && (event.getAction() == KeyEvent.KEYCODE_ENTER))
+                return sendChatMessage();
+            return false;
         });
 
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                sendChatMessage();
-            }
-        });
+        sendButton.setOnClickListener(v -> sendChatMessage());
 
         listView.setTranscriptMode(AbsListView.TRANSCRIPT_MODE_ALWAYS_SCROLL);
         listView.setAdapter(chatAdapter);
@@ -173,9 +157,9 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
 
 //        populateList();
 
-        messages.addSnapshotListener(this);
-        messages2.addSnapshotListener(this);
-        FirebaseFirestore.getInstance().collection("users").document(to).collection("contacts").document(from).addSnapshotListener(this::updateContactDoc);
+        lr1 = messages.addSnapshotListener(this);
+        lr2 = messages2.addSnapshotListener(this);
+        lr3 = FirebaseFirestore.getInstance().collection("users").document(to).collection("contacts").document(from).addSnapshotListener(this::updateContactDoc);
 
 
     }
@@ -210,209 +194,118 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
     }
 
     private boolean sendChatMessage() {
+        //get message text and clear input field
         String messageText = messageInputText.getText().toString();
         messageInputText.setText("");
-
+        //initialise map to be uploaded to firestore and add message data
         Map<String, Object> data = new HashMap<>();
         data.put("message", messageText);
         data.put("read", false);
         data.put("time_sent", FieldValue.serverTimestamp());
         data.put("sent_by", FirebaseAuth.getInstance().getUid());
-
+        //add message to firestore
         messages.add(data)
                 .addOnSuccessListener(documentReference -> {
-
+                    //add id of receiver into the "convos" array to be able to fetch them in the conversation list fragment
                     convos.get()
                             .addOnCompleteListener(task -> {
-
                                 if (task.isSuccessful()){
-                                    ArrayList<String> array = new ArrayList<>();
                                     AtomicReference<List<String>> group = new AtomicReference<>();
-
                                     DocumentSnapshot document = task.getResult();
                                     group.set((List<String>) document.get("convos"));
-
+                                    //check if the "convos" array exists, if not create it and add it to document
                                     if (group.get() != null) {
-
-                                        array.addAll(group.get());
-
+                                        ArrayList<String> array = new ArrayList<>(group.get());
+                                        //check if receiver id is already in "convos" array and if not add it
                                         if (!array.contains(to)) {
-
                                             convos.update("convos", FieldValue.arrayUnion(to));
-
                                         }
                                     }
                                     else{
-
                                         Map<String, Object> newData = new HashMap<>();
-
                                         newData.put("convos", Collections.singletonList(to));
-
                                         convos.set(newData);
-
                                     }
-
+                                    //function to send notification to receiver devices
                                     sendMessageNotification(messageText);
-
                                 }
-
                             });
-
                     Log.d("TEST", "DocumentSnapshot written with ID: " + documentReference.getId());
                 })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w("TEST", "Error adding document", e);
-                    }
-                });
-
+                .addOnFailureListener(e -> Log.w("TEST", "Error adding document", e));
+        //update document to show when the latest message was in the conversation, this is used to sort list of convos in the conversation list fragment
         contacts.document(to).update(FirestoreContact.FIELD_LASTMESSAGE, FieldValue.serverTimestamp());
-
         return true;
-
-    }
-
-    private void populateList(){
-        messages.get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Message message = document.toObject(Message.class);
-                            message.setRead(document.getBoolean(Message.FIELD_READ));
-                            message.setSentBy(document.getString(Message.FIELD_SENT_BY));
-                            if (document.getTimestamp(Message.FIELD_TIME_SENT) == null)
-                                message.setTimestamp(Timestamp.now());
-                            else {
-                                message.setTimestamp(document.getTimestamp(Message.FIELD_TIME_SENT));
-                            }
-                            chatAdapter.add(message);
-                        }
-                    } else {
-                        Log.w("TEST", "Error getting documents.", task.getException());
-                    }
-                });
-        messages2.get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            Message message = document.toObject(Message.class);
-                            message.setRead(document.getBoolean(Message.FIELD_READ));
-                            message.setSentBy(document.getString(Message.FIELD_SENT_BY));
-                            if (document.getTimestamp(Message.FIELD_TIME_SENT) == null)
-                                message.setTimestamp(Timestamp.now());
-                            else {
-                                message.setTimestamp(document.getTimestamp(Message.FIELD_TIME_SENT));
-                            }
-                            chatAdapter.add(message);
-                        }
-                    } else {
-                        Log.w("TEST", "Error getting documents.", task.getException());
-                    }
-                });
     }
 
     public void sendMessageNotification(String message){
-
         String API = "https://fcm.googleapis.com/fcm/send";
-        String serverKey = "key=" + getResources().getString(R.string.FCM_SERVER_KEY);;
+        String serverKey = "key=" + getResources().getString(R.string.FCM_SERVER_KEY);
         String contentType = "application/json";
-
         JSONObject notification = new JSONObject();
-        JSONObject notifcationBody = new JSONObject();
-
+        JSONObject notificationBody = new JSONObject();
         DocumentReference userDoc = FirebaseFirestore.getInstance().collection("users").document(to);
 
+        //Getting device tokens of receiver
         userDoc.get()
                 .addOnCompleteListener(task -> {
-
                     if (task.isSuccessful()){
-
                         DocumentSnapshot doc = task.getResult();
-
                         List<String> sendToTokens = (List<String>) doc.get("deviceTokens");
-
                         if (sendToTokens != null) {
                             for (String s : sendToTokens) {
-
                                 try {
-
-                                    notifcationBody.put("title", from);
-                                    notifcationBody.put("message", message);
+                                    notificationBody.put("title", from);
+                                    notificationBody.put("message", message);
                                     notification.put("to", s);
-                                    notification.put("data", notifcationBody);
-
+                                    notification.put("data", notificationBody);
                                 } catch (JSONException e) {
                                     Log.e("TAG", "onCreate: " + e.getMessage());
                                 }
-
-                                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, API, notification, response -> {
-                                    Log.i("TEST", response.toString());
-                                }, error -> {
-//                                    Toast.makeText(this, "Request error", Toast.LENGTH_LONG).show();
-                                    Log.e("TEST", error.toString());
-                                }){
-
+                                JsonObjectRequest jsonRequest = new JsonObjectRequest(Request.Method.POST, API, notification, response -> Log.i("TEST", response.toString()), error -> Log.e("TEST", error.toString())){
                                     @Override
-                                    public Map<String, String> getHeaders() throws AuthFailureError {
+                                    public Map<String, String> getHeaders(){
                                         HashMap<String, String> params = new HashMap<>();
                                         params.put("Authorization", serverKey);
                                         params.put("Content-Type", contentType);
                                         return params;
                                     }
                                 };
-
                                 Volley.newRequestQueue(this).add(jsonRequest);
-
                             }
                         }
                     }
-
                 });
-
     }
 
     @Override
     protected void onDestroy() {
+        lr1.remove();
+        lr2.remove();
+        lr3.remove();
         super.onDestroy();
     }
 
     public void showMenu(View v){
-
         PopupMenu moreMenu = new PopupMenu(this, v);
         moreMenu.setOnMenuItemClickListener(this);
         MenuInflater inflater = moreMenu.getMenuInflater();
         inflater.inflate(R.menu.chat_menu, moreMenu.getMenu());
-
         contacts.document(to).get()
                 .addOnCompleteListener(task -> {
-
                     if (task.isSuccessful()){
-
                         DocumentSnapshot doc = task.getResult();
-
                         if (doc.exists()){
-
                             Boolean sharing = doc.getBoolean("sharingLoc");
-
                             if (sharing != null){
-
                                 if (sharing){
-
                                     moreMenu.getMenu().getItem(0).setChecked(true);
-
                                 }
-
                             }
-
                         }
-
                     }
-
                 });
-
         moreMenu.show();
-
     }
 
     @Override
@@ -475,28 +368,21 @@ public class ChatActivity extends AppCompatActivity implements EventListener<Que
         }
 
         if (chatAdapter != null) {
-
             assert queryDocumentSnapshots != null;
             for (DocumentChange c : queryDocumentSnapshots.getDocumentChanges()) {
-
-                switch (c.getType()) {
-
-                    case ADDED:
-                        Log.d("TEST", "New Message: " + c.getDocument().getData());
-                        Message message = c.getDocument().toObject(Message.class);
-                        message.setRead(c.getDocument().getBoolean(Message.FIELD_READ));
-                        message.setSentBy(c.getDocument().getString(Message.FIELD_SENT_BY));
-                        if (c.getDocument().getTimestamp(Message.FIELD_TIME_SENT) == null)
-                            message.setTimestamp(Timestamp.now());
-                        else {
-                            message.setTimestamp(c.getDocument().getTimestamp(Message.FIELD_TIME_SENT));
-                        }
-                        chatAdapter.add(message);
-                        break;
-
+                if (c.getType() == DocumentChange.Type.ADDED) {
+//                    Log.d("TEST", "New Message: " + c.getDocument().getData());
+                    Message message = c.getDocument().toObject(Message.class);
+                    message.setRead(c.getDocument().getBoolean(Message.FIELD_READ));
+                    message.setSentBy(c.getDocument().getString(Message.FIELD_SENT_BY));
+                    if (c.getDocument().getTimestamp(Message.FIELD_TIME_SENT) == null)
+                        message.setTimestamp(Timestamp.now());
+                    else {
+                        message.setTimestamp(c.getDocument().getTimestamp(Message.FIELD_TIME_SENT));
+                    }
+                    chatAdapter.add(message);
                 }
             }
-
         }
     }
 }

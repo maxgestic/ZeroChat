@@ -1,14 +1,14 @@
 package com.maxgestic.zerochat;
 
+import androidx.annotation.NonNull;
+
 import com.google.firebase.Timestamp;
 
 import java.util.Comparator;
 
 public class FirestoreContact implements Comparable<FirestoreContact>{
     public static final String FIELD_NICKNAME = "nickname";
-    public static final String PATH = "users";
     public static final String FIELD_EMAIL = "email";
-    public static final String FIELD_ID = "id";
     public static final String FIELD_LASTMESSAGE = "lastMessage";
 
     private String nickname;
@@ -40,20 +40,17 @@ public class FirestoreContact implements Comparable<FirestoreContact>{
         this.imageBytes = imageBytes;
     }
 
+    @NonNull
     @Override
     public String toString(){
         return String.format("id: %s; nickname %s", id, nickname);
     }
 
-    public static Comparator<FirestoreContact> byDate = new Comparator<FirestoreContact>() {
-        @Override
-        public int compare(FirestoreContact o1, FirestoreContact o2) {
-            Timestamp t1, t2;
-            t1 = o1.getLastMessage();
-            t2 = o2.getLastMessage();
-            return t2.compareTo(t1);
-
-        }
+    public static Comparator<FirestoreContact> byDate = (o1, o2) -> {
+        Timestamp t1, t2;
+        t1 = o1.getLastMessage();
+        t2 = o2.getLastMessage();
+        return t2.compareTo(t1);
     };
 
     @Override

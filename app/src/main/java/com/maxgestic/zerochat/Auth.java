@@ -1,7 +1,6 @@
 package com.maxgestic.zerochat;
 
 import android.content.Intent;
-import android.content.IntentSender;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -11,20 +10,15 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.IntentSenderRequest;
-import androidx.activity.result.contract.ActivityResultContract;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import com.google.android.gms.auth.api.identity.BeginSignInRequest;
-import com.google.android.gms.auth.api.identity.BeginSignInResult;
 import com.google.android.gms.auth.api.identity.Identity;
 import com.google.android.gms.auth.api.identity.SignInClient;
 import com.google.android.gms.auth.api.identity.SignInCredential;
@@ -32,8 +26,6 @@ import com.google.android.gms.common.SignInButton;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
@@ -55,20 +47,16 @@ public class Auth extends AppCompatActivity {
     private static final String TAG = "TEST";
     private EditText inputEmail, inputPassword;
     private Button btnLogin, btnRegister;
-    private String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
+    private final String emailPattern = "[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+";
     private ProgressBar progressBar;
     private TextView socialDevTxt;
     private ConstraintLayout layout;
     private FirebaseAuth mAuth;
-    private FirebaseUser mUser;
     private FirebaseFirestore mStore;
     private SignInClient oneTapClient;
-    private BeginSignInRequest signInRequest;
-    private BeginSignInRequest signUpRequest;
-    private static final int REQ_ONE_TAP = 2;  // Can be any integer unique to the Activity.
-    private boolean showOneTapUI = true;
+    private Boolean showOneTapUI = true;
 
-    private ActivityResultLauncher<IntentSenderRequest> loginResultHandler = registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
+    private final ActivityResultLauncher<IntentSenderRequest> loginResultHandler = registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
         // handle intent result here
         if (result.getResultCode() == RESULT_OK) Log.d(TAG, "RESULT_OK.");
         if (result.getResultCode() == RESULT_CANCELED) Log.d(TAG, "RESULT_CANCELED.");
@@ -78,21 +66,8 @@ public class Auth extends AppCompatActivity {
             String idToken = credential.getGoogleIdToken();
             String username = credential.getId();
             String password = credential.getPassword();
-            if (idToken !=  null) {
-                // Got an ID token from Google. Use it to authenticate
-                // with your backend.
-                Log.d(TAG, "Got ID token." + idToken);
-            } if (password != null) {
-                // Got a saved username and password. Use them to authenticate
-                // with your backend.
-                Log.d(TAG, "Got password." + password);
-            } if (username != null) {
-                // Got a saved username and password. Use them to authenticate
-                // with your backend.
-                Log.d(TAG, "Got username." + username);
-            }
-
-            if (username != null && password != null){
+            //login if saved username and password filled in from one tap
+            if (password != null){
                 progressBar.setVisibility(View.VISIBLE);
                 btnLogin.setVisibility(View.GONE);
                 btnRegister.setVisibility(View.GONE);
@@ -116,9 +91,9 @@ public class Auth extends AppCompatActivity {
                         set.applyTo(layout);
                     }
                 });
-
             }
-            if (username != null && idToken != null){
+            //login if token from google login from one tap
+            if (idToken != null){
                 progressBar.setVisibility(View.VISIBLE);
                 btnLogin.setVisibility(View.GONE);
                 btnRegister.setVisibility(View.GONE);
@@ -169,12 +144,10 @@ public class Auth extends AppCompatActivity {
             switch (e.getStatusCode()) {
                 case CommonStatusCodes.CANCELED:
                     Log.d(TAG, "One-tap dialog was closed.");
-                    // Don't re-prompt the user.
                     showOneTapUI = false;
                     break;
                 case CommonStatusCodes.NETWORK_ERROR:
                     Log.d(TAG, "One-tap encountered a network error.");
-                    // Try again or just ignore.
                     break;
                 default:
                     Log.d(TAG, "Couldn't get credential from result."
@@ -183,74 +156,11 @@ public class Auth extends AppCompatActivity {
             }
         }
     });
-
-    private ActivityResultLauncher<IntentSenderRequest> registerResultHandler = registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(), result -> {
-        // handle intent result here
-        if (result.getResultCode() == RESULT_OK) Log.d(TAG, "RESULT_OK.");
-        if (result.getResultCode() == RESULT_CANCELED) Log.d(TAG, "RESULT_CANCELED.");
-        if (result.getResultCode() == RESULT_FIRST_USER) Log.d(TAG, "RESULT_FIRST_USER.");
-        try {
-            SignInCredential credential = oneTapClient.getSignInCredentialFromIntent(result.getData());
-            String idToken = credential.getGoogleIdToken();
-            String username = credential.getId();
-            String password = credential.getPassword();
-            if (idToken !=  null) {
-                // Got an ID token from Google. Use it to authenticate
-                // with your backend.
-                Log.d(TAG, "Got ID token." + idToken);
-                progressBar.setVisibility(View.VISIBLE);
-                btnLogin.setVisibility(View.GONE);
-                btnRegister.setVisibility(View.GONE);
-                ConstraintSet set = new ConstraintSet();
-                set.clone(layout);
-                set.connect(socialDevTxt.getId(), ConstraintSet.TOP, progressBar.getId(), ConstraintSet.BOTTOM, 100);
-                set.applyTo(layout);
-
-                mAuth.createUserWithEmailAndPassword(username, idToken).addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(Auth.this, "Registered Successfully", Toast.LENGTH_SHORT).show();
-                        DocumentReference documentReference = mStore.collection("users").document(Objects.requireNonNull(mAuth.getCurrentUser()).getUid());
-                        Map<String, Object> user = new HashMap<>();
-                        user.put("email", username);
-                        documentReference.set(user);
-                        StartNewActivity();
-                    } else {
-                        progressBar.setVisibility(View.GONE);
-                        Toast.makeText(Auth.this, "" + task.getException(), Toast.LENGTH_SHORT).show();
-                        Log.e(TAG, "" + task.getException());
-                        btnLogin.setVisibility(View.VISIBLE);
-                        btnRegister.setVisibility(View.VISIBLE);
-                        set.clone(layout);
-                        set.connect(socialDevTxt.getId(), ConstraintSet.TOP, btnRegister.getId(), ConstraintSet.BOTTOM, 78);
-                        set.applyTo(layout);
-                    }
-                });
-            }
-
-        } catch (ApiException e) {
-            switch (e.getStatusCode()) {
-                case CommonStatusCodes.CANCELED:
-                    Log.d(TAG, "One-tap dialog was closed.");
-                    // Don't re-prompt the user.
-                    showOneTapUI = false;
-                    break;
-                case CommonStatusCodes.NETWORK_ERROR:
-                    Log.d(TAG, "One-tap encountered a network error.");
-                    // Try again or just ignore.
-                    break;
-                default:
-                    Log.d(TAG, "Couldn't get credential from result."
-                            + e.getLocalizedMessage());
-                    break;
-            }
-        }
-    });
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_auth);
+        //find all the views and setup the page
         inputEmail = findViewById(R.id.inputEmail);
         inputPassword = findViewById(R.id.inputPassword);
         btnLogin = findViewById(R.id.btnLogin);
@@ -269,56 +179,38 @@ public class Auth extends AppCompatActivity {
         progressBar.setVisibility(View.GONE);
         mAuth = FirebaseAuth.getInstance();
         mStore = FirebaseFirestore.getInstance();
-        mUser = mAuth.getCurrentUser();
+        FirebaseUser mUser = mAuth.getCurrentUser();
         btnRegister.setOnClickListener(v -> RegisterUser());
         btnLogin.setOnClickListener(v -> LoginUser());
         //check if user is logged in and if so start HomeActivity via intent
         if(mUser != null){
-
-            //TODO: Program if device token is not in deviceTokens array in firestore then logout user and make them log in again, this is to implement a device manager later on where users can logout of other devices remotley
-
+            //TODO: Program if device token is not in deviceTokens array in firestore then logout user and make them log in again, this is to implement a device manager later on where users can logout of other devices remotely
             StartNewActivity();
         }
 
         SignInButton googleSignInBtn = findViewById(R.id.googleSignInButton);
         googleSignInBtn.setSize(SignInButton.SIZE_ICON_ONLY);
         googleSignInBtn.setColorScheme(SignInButton.COLOR_AUTO);
-        googleSignInBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                GoogleLogin();
-            }
-        });
+        googleSignInBtn.setOnClickListener(v -> GoogleLogin());
 
-        GoogleLogin();
+        if (showOneTapUI) {
+            GoogleLogin();
+        }
 
     }
 
     private void GoogleLogin(){
         oneTapClient = Identity.getSignInClient(this);
-        signInRequest = BeginSignInRequest.builder()
+        BeginSignInRequest signInRequest = BeginSignInRequest.builder()
                 .setPasswordRequestOptions(BeginSignInRequest.PasswordRequestOptions.builder()
                         .setSupported(true)
                         .build())
                 .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
                         .setSupported(true)
-                        // Your server's client ID, not your Android client ID.
                         .setServerClientId("746704851947-8764i6nl3ipop62fptctaihct2rf1nga.apps.googleusercontent.com")
-                        // Only show accounts previously used to sign in.
                         .setFilterByAuthorizedAccounts(false)
                         .build())
-                // Automatically sign in when exactly one credential is retrieved.
                 .setAutoSelectEnabled(true)
-                .build();
-        // ...
-        signUpRequest = BeginSignInRequest.builder()
-                .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
-                        .setSupported(true)
-                        // Your server's client ID, not your Android client ID.
-                        .setServerClientId("746704851947-tht810vba133nbcnrr7a6nbgl36mddl9.apps.googleusercontent.com")
-                        // Show all accounts on the device.
-                        .setFilterByAuthorizedAccounts(false)
-                        .build())
                 .build();
 
         oneTapClient.beginSignIn(signInRequest)
@@ -329,24 +221,7 @@ public class Auth extends AppCompatActivity {
                         e.printStackTrace();
                         Log.e(TAG, "Couldn't start One Tap UI: " + e.getLocalizedMessage());
                     }
-                }).addOnFailureListener(this, e -> {
-//             No saved credentials found. Launch the One Tap sign-up flow, or
-//             do nothing and continue presenting the signed-out UI.
-            oneTapClient.beginSignIn(signUpRequest)
-                    .addOnSuccessListener(this, beginSignUpResult -> {
-                        try {
-                            registerResultHandler.launch(new IntentSenderRequest.Builder(beginSignUpResult.getPendingIntent().getIntentSender()).build());
-                        } catch(android.content.ActivityNotFoundException e2){
-                            e2.printStackTrace();
-                            Log.e(TAG, "Couldn't start One Tap UI: " + e2.getLocalizedMessage());
-                        }
-                    }).addOnFailureListener(this, e3 -> {
-                // No saved credentials found. Launch the One Tap sign-up flow, or
-                // do nothing and continue presenting the signed-out UI.
-                Log.d(TAG, e3.getLocalizedMessage());
-            });
-            Log.d(TAG, e.getLocalizedMessage());
-        });
+                }).addOnFailureListener(this, e -> Log.d(TAG, e.getLocalizedMessage()));
     }
 
     private void LoginUser() {

@@ -1,22 +1,16 @@
 package com.maxgestic.zerochat;
 
 import android.annotation.SuppressLint;
-import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Build;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -35,7 +29,7 @@ import kotlin.random.Random;
 
 public class FCMService extends FirebaseMessagingService {
 
-    private String ADMIN_CHANNEL_ID = "admin_channel";
+    private final String NEW_MESSAGE_CHANNEL_ID = "new_message_channel";
 
     @Override
     public void onNewToken(@NonNull String token) {
@@ -43,7 +37,6 @@ public class FCMService extends FirebaseMessagingService {
                 .addOnCompleteListener(task -> {
                     if (!task.isSuccessful()) {
                         Log.w("TEST", "Fetching FCM registration token failed", task.getException());
-                        return;
                     }
                 });
         super.onNewToken(token);
@@ -53,36 +46,32 @@ public class FCMService extends FirebaseMessagingService {
     @Override
     public void onMessageReceived(@NonNull RemoteMessage message) {
         super.onMessageReceived(message);
-
+        //get userID and documentRef to get nickname
         String userID = FirebaseAuth.getInstance().getUid();
+        assert userID != null;
         DocumentReference docRef = FirebaseFirestore.getInstance().collection("users").document(userID).collection("contacts").document(Objects.requireNonNull(message.getData().get("title")));
-
-        Log.d("TEST", message.getData().get("title") + " " + message.getData().get("message"));
-
+        //create intent to start app and launch chat with contact that the message came from
         Intent intent = new Intent(this, ChatActivity.class);
         intent.putExtra("from", userID);
         intent.putExtra("to", message.getData().get("title"));
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        Integer notificationID = Random.Default.nextInt(3000);
-
-        setupChannels(notificationManager);
-
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        //initialise notification manager
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        int notificationID = Random.Default.nextInt(3000);
+        //setup notification channel
+        setupChannels(notificationManager);
+        //create pending intent
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_ONE_SHOT | PendingIntent.FLAG_IMMUTABLE);
-
-
+        //get nickname from firestore to put in notification
         docRef.get()
                 .addOnCompleteListener(task -> {
-
                    if (task.isSuccessful()){
-
                        if (task.getResult() != null){
-
                            DocumentSnapshot doc = task.getResult();
+                           //build notification
                            String nick = doc.getString("nickname");
-
                            Uri notificationSoundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-                           NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, ADMIN_CHANNEL_ID)
+                           NotificationCompat.Builder notificationBuilder = new NotificationCompat.Builder(this, NEW_MESSAGE_CHANNEL_ID)
                                    .setSmallIcon(R.drawable.ic_chat)
                                    .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.chatbubble))
                                    .setContentTitle("Message From: " + nick)
@@ -90,23 +79,19 @@ public class FCMService extends FirebaseMessagingService {
                                    .setAutoCancel(true)
                                    .setSound(notificationSoundUri)
                                    .setContentIntent(pendingIntent);
-
                            notificationBuilder.setColor(R.color.accent1_100);
-
+                           //notify the user of new message
                            notificationManager.notify(notificationID, notificationBuilder.build());
-
                        }
-
                    }
-
                 });
     }
 
     private void setupChannels(NotificationManager notificationManager) {
-        String adminChannelName = "New Notification";
+        //setup notification channel
+        String newMessageChannel = "New Message";
         String adminChannelDesc = "Notification of new message from another user";
-
-        NotificationChannel adminChannel = new NotificationChannel(ADMIN_CHANNEL_ID, adminChannelName, NotificationManager.IMPORTANCE_HIGH);
+        NotificationChannel adminChannel = new NotificationChannel(NEW_MESSAGE_CHANNEL_ID, newMessageChannel, NotificationManager.IMPORTANCE_HIGH);
         adminChannel.setDescription(adminChannelDesc);
         adminChannel.enableLights(true);
         adminChannel.setLightColor(Color.RED);
