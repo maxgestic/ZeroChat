@@ -1,0 +1,2 @@
+# ZeroChat
+### This is an Android App I created for the Mobile Software Development Unit in my third year of my Ethical Hacking university degree. It is a basic chat app, that allows users to add each other via their email addresses and chat to each other. There is also a real-time location sharing feature as well as background notifications of new messages. The backend of the app runs on Firebase it supports authentication via Email and Password or Google Account.
